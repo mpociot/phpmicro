@@ -25,18 +25,18 @@ index d797f5f93f..27cb05e3e4 100644
  	zend_ffi_exception_ce = register_class_FFI_Exception(zend_ce_error);
  
 diff --git a/ext/opcache/ZendAccelerator.c b/ext/opcache/ZendAccelerator.c
-index 8d45b2ae41..35e9403a31 100644
+index f597df36e29..a9b8c7c14b8 100644
 --- a/ext/opcache/ZendAccelerator.c
 +++ b/ext/opcache/ZendAccelerator.c
-@@ -2822,7 +2822,7 @@ static inline zend_result accel_find_sapi(void)
- 		}
- 		if (ZCG(accel_directives).enable_cli && (
- 		    strcmp(sapi_module.name, "cli") == 0
--		  || strcmp(sapi_module.name, "phpdbg") == 0)) {
-+		  || strcmp(sapi_module.name, "phpdbg") == 0 || strcmp(sapi_module.name, "micro") == 0)) {
- 			return SUCCESS;
- 		}
- 	}
+@@ -2847,7 +2847,7 @@ static void zps_startup_failure(const char *reason, const char *api_reason, int
+ static inline bool accel_sapi_is_cli(void)
+ {
+ 	return strcmp(sapi_module.name, "cli") == 0
+-		|| strcmp(sapi_module.name, "phpdbg") == 0;
++		|| strcmp(sapi_module.name, "phpdbg") == 0 || strcmp(sapi_module.name, "micro") == 0;
+ }
+ 
+ static zend_result zend_accel_init_shm(void)
 @@ -3134,7 +3134,7 @@ static int accel_startup(zend_extension *extension)
  
  #ifdef HAVE_HUGE_CODE_PAGES
@@ -46,15 +46,15 @@ index 8d45b2ae41..35e9403a31 100644
  	     strcmp(sapi_module.name, "cli-server") == 0 ||
  		 strcmp(sapi_module.name, "cgi-fcgi") == 0 ||
  		 strcmp(sapi_module.name, "fpm-fcgi") == 0)) {
-@@ -3146,7 +3146,7 @@ static int accel_startup(zend_extension *extension)
- 	if (accel_find_sapi() == FAILURE) {
+@@ -3170,7 +3170,7 @@ static int accel_startup(zend_extension *extension)
+ 	}
+ #endif
+ 
+-	if (!ZCG(accel_directives).enable_cli && accel_sapi_is_cli()) {
++	if (!ZCG(accel_directives).enable_cli && (accel_sapi_is_cli() || strcmp(sapi_module.name, "micro") == 0)) {
  		accel_startup_ok = false;
- 		if (!ZCG(accel_directives).enable_cli &&
--		    strcmp(sapi_module.name, "cli") == 0) {
-+		    (strcmp(sapi_module.name, "cli") == 0 || strcmp(sapi_module.name, "micro") == 0)) {
- 			zps_startup_failure("Opcode Caching is disabled for CLI", NULL, accelerator_remove_cb);
- 		} else {
- 			zps_startup_failure("Opcode Caching is only supported in Apache, FPM, FastCGI, FrankenPHP, LiteSpeed and uWSGI SAPIs", NULL, accelerator_remove_cb);
+ 		zps_startup_failure("Opcode Caching is disabled for CLI", NULL, accelerator_remove_cb);
+ 		return SUCCESS;
 @@ -4685,7 +4685,7 @@ static zend_result accel_finish_startup_preload_subprocess(pid_t *pid)
  	if (!ZCG(accel_directives).preload_user
  	 || !*ZCG(accel_directives).preload_user) {
